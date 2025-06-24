@@ -1,0 +1,40 @@
+name: Build image and deploy to ECS
+on:
+  push:
+    Branches:
+      - main
+  workflow_dispatch:
+env:
+  NODE_IMAGE_NAME: ecs-node-api
+
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Extract Docker image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ vars.DOCKER_USERNAME}}/${{env.NODE_IMAGE_NAME}}
+          tags: |
+            latest
+            v1.0.${github.run_number}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./API_JOKES
+          file: ./API_JOKES/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+     
